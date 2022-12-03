@@ -16,6 +16,12 @@ void testPlayerStrategies()
 
     // setup game engine (just to test access to the deck), territories, and players to test
     GameEngine *game = new GameEngine();
+    GameEngine::getDeck()->createDeck();
+
+    vector<Card *> d = GameEngine::getDeck()->printDeck();
+    int i = 1;
+    for (Card *card : d)
+        cout << i++ << ". " << *card << endl;
 
     Territory *territories[7] = {new Territory(0, "Villeray", 4), new Territory(1, "Little Italy", 4),
                                  new Territory(2, "Mile End", 3), new Territory(3, "Plateau", 3),
@@ -70,15 +76,20 @@ void testPlayerStrategies()
     territories[1]->setArmyUnits(20);
     territories[3]->setArmyUnits(20);
 
-    eugene->getHand()->addToHand(new BombCard());
-    tina->getHand()->addToHand(new BombCard());
-    louise->getHand()->addToHand(new ReinforcementCard());
-    eugene->getHand()->addToHand(new DiplomacyCard());
-    tina->getHand()->addToHand(new AirliftCard());
-    louise->getHand()->addToHand(new DiplomacyCard());
-    eugene->getHand()->addToHand(new AirliftCard());
-    tina->getHand()->addToHand(new BlockadeCard());
-    louise->getHand()->addToHand(new BlockadeCard());
+    eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
+    tina->getHand()->addToHand(GameEngine::getDeck()->draw());
+    louise->getHand()->addToHand(GameEngine::getDeck()->draw());
+    eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
+    tina->getHand()->addToHand(GameEngine::getDeck()->draw());
+    louise->getHand()->addToHand(GameEngine::getDeck()->draw());
+    eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
+    tina->getHand()->addToHand(GameEngine::getDeck()->draw());
+    louise->getHand()->addToHand(GameEngine::getDeck()->draw());
+
+    d = GameEngine::getDeck()->printDeck();
+    i = 1;
+    for (Card *card : d)
+        cout << i++ << ". " << *card << endl;
 
     cout << "-----------------------------------------------------------\n";
     // issue test deploy orders
