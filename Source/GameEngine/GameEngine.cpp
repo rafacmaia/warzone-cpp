@@ -1,9 +1,9 @@
-#include "GameEngine/GameEngine.h"
-#include "CommandProcessing/CommandProcessing.h"
-#include "Map/Map.h"
-#include "Player/Player.h"
-#include "Cards/Cards.h"
-#include "Orders/Orders.h"
+#include "../../Header/GameEngine/GameEngine.h"
+#include "../../Header/CommandProcessing/CommandProcessing.h"
+#include "../../Header/Map/Map.h"
+#include "../../Header/Player/Player.h"
+#include "../../Header/Cards/Cards.h"
+#include "../../Header/Orders/Orders.h"
 
 #include <iostream>
 #include <random>

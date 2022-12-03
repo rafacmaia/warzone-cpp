@@ -1,10 +1,10 @@
-#include "LoggingObserver/LoggingObserverDriver.h"
-#include "LoggingObserver/LoggingObserver.h"
-#include "Orders/Orders.h"
-#include "CommandProcessing/CommandProcessing.h"
-#include "GameEngine/GameEngine.h"
-#include "Map/Map.h"
-#include "Player/Player.h"
+#include "../../Header/LoggingObserver/LoggingObserverDriver.h"
+#include "../../Header/LoggingObserver/LoggingObserver.h"
+#include "../../Header/Orders/Orders.h"
+#include "../../Header/CommandProcessing/CommandProcessing.h"
+#include "../../Header/GameEngine/GameEngine.h"
+#include "../../Header/Map/Map.h"
+#include "../../Header/Player/Player.h"
 #include <iostream>
 #include <fstream>
 #include <string>

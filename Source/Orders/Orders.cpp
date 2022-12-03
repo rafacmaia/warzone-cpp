@@ -1,9 +1,9 @@
-#include "Orders/Orders.h"
-#include "Map/Map.h"
-#include "Player/Player.h"
-#include "Cards/Cards.h"
-#include "GameEngine/GameEngine.h"
-#include "PlayerStrategies/PlayerStrategies.h"
+#include "../../Header/Orders/Orders.h"
+#include "../../Header/Map/Map.h"
+#include "../../Header/Player/Player.h"
+#include "../../Header/Cards/Cards.h"
+#include "../../Header/GameEngine/GameEngine.h"
+#include "../../Header/PlayerStrategies/PlayerStrategies.h"
 
 #include <iostream>
 #include <fstream>

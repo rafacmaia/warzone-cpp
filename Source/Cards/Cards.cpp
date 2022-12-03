@@ -1,7 +1,7 @@
-#include "Cards/Cards.h"
-#include "Orders/Orders.h"
-#include "Player/Player.h"
-#include "GameEngine/GameEngine.h"
+#include "../../Header/Cards/Cards.h"
+#include "../../Header/Orders/Orders.h"
+#include "../../Header/Player/Player.h"
+#include "../../Header/GameEngine/GameEngine.h"
 
 #include <iostream>
 using std::cout;

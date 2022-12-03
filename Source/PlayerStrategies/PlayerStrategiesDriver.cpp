@@ -1,8 +1,8 @@
-#include "PlayerStrategies/PlayerStrategiesDriver.h"
-#include "PlayerStrategies/PlayerStrategies.h"
-#include "Map/Map.h"
-#include "GameEngine/GameEngine.h"
-#include "Player/Player.h"
+#include "../../Header/PlayerStrategies/PlayerStrategiesDriver.h"
+#include "../../Header/PlayerStrategies/PlayerStrategies.h"
+#include "../../Header/Map/Map.h"
+#include "../../Header/GameEngine/GameEngine.h"
+#include "../../Header/Player/Player.h"
 
 #include <iostream>
 using std::cout;

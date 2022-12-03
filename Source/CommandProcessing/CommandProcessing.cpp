@@ -1,5 +1,5 @@
-#include "CommandProcessing/CommandProcessing.h"
-#include "CommandProcessing/CommandProcessingDriver.h"
+#include "../../Header/CommandProcessing/CommandProcessingDriver.h"
+#include "../../Header/CommandProcessing/CommandProcessing.h"
 #include <iostream>
 #include <algorithm>
 #include <string>

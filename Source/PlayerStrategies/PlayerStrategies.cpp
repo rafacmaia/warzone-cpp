@@ -1,9 +1,9 @@
-#include "PlayerStrategies/PlayerStrategies.h"
-#include "Player/Player.h"
-#include "Map/Map.h"
-#include "Orders/Orders.h"
-#include "Cards/Cards.h"
-#include "GameEngine/GameEngine.h"
+#include "../../Header/PlayerStrategies/PlayerStrategies.h"
+#include "../../Header/Player/Player.h"
+#include "../../Header/Map/Map.h"
+#include "../../Header/Orders/Orders.h"
+#include "../../Header/Cards/Cards.h"
+#include "../../Header/GameEngine/GameEngine.h"
 
 #include <iostream>
 using std::cin;

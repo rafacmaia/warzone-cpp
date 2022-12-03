@@ -1,6 +1,6 @@
 #pragma once
-#include "GameEngine/GameEngine.h"
-#include "LoggingObserver/LoggingObserver.h"
+#include "../GameEngine/GameEngine.h"
+#include "../LoggingObserver/LoggingObserver.h"
 #include <iostream>
 #include <string>
 #include <vector>

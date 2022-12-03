@@ -1,7 +1,7 @@
-#include "CommandProcessing/CommandProcessingDriver.h"
-#include "CommandProcessing/CommandProcessing.h"
-#include "GameEngine/GameEngine.h"
-#include "GameEngine/GameEngineDriver.h"
+#include "../../Header/CommandProcessing/CommandProcessingDriver.h"
+#include "../../Header/CommandProcessing/CommandProcessing.h"
+#include "../../Header/GameEngine/GameEngine.h"
+#include "../../Header/GameEngine/GameEngineDriver.h"
 
 void testCommandProcessor()
 {
