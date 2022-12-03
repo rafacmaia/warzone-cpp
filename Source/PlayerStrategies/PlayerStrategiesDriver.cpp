@@ -3,6 +3,7 @@
 #include "../../Header/Map/Map.h"
 #include "../../Header/GameEngine/GameEngine.h"
 #include "../../Header/Player/Player.h"
+#include "../../Header/Cards/Cards.h"
 
 #include <iostream>
 using std::cout;
@@ -48,6 +49,10 @@ void testPlayerStrategies()
     Player *eugene = new Player("Eugene", new HumanPlayerStrategy);
     Player *louise = new Player("Louise", new HumanPlayerStrategy);
 
+    game->addPlayer(tina);
+    game->addPlayer(eugene);
+    game->addPlayer(louise);
+
     // assign territories for testing
     tina->addTerritory(territories[4]);
     tina->addTerritory(territories[5]);
@@ -61,29 +66,68 @@ void testPlayerStrategies()
     eugene->addReinforcements(50);
     louise->addReinforcements(50);
 
+    territories[4]->setArmyUnits(20);
+    territories[1]->setArmyUnits(20);
+    territories[3]->setArmyUnits(20);
+
+    eugene->getHand()->addToHand(new BombCard());
+    tina->getHand()->addToHand(new BombCard());
+    louise->getHand()->addToHand(new ReinforcementCard());
+    eugene->getHand()->addToHand(new DiplomacyCard());
+    tina->getHand()->addToHand(new AirliftCard());
+    louise->getHand()->addToHand(new DiplomacyCard());
+    eugene->getHand()->addToHand(new AirliftCard());
+    tina->getHand()->addToHand(new BlockadeCard());
+    louise->getHand()->addToHand(new BlockadeCard());
+
+    cout << "-----------------------------------------------------------\n";
     // issue test deploy orders
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     tina->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     louise->issueOrder();
+    cout << "-----------------------------------------------------------\n";
     eugene->issueOrder();
+    cout << "-----------------------------------------------------------\n";
 }
