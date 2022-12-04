@@ -21,6 +21,8 @@ public:
 
     virtual void issueOrder() = 0;
 
+    virtual void issueDeployOrder() = 0;
+    virtual void issueAdvanceOrder() = 0;
     virtual void issueAirliftOrder() = 0;
     virtual void issueBlockadeOrder() = 0;
     virtual void issueBombOrder() = 0;
@@ -36,6 +38,8 @@ public:
 
 protected:
     Player *player;
+
+    bool hasUnitsOnMap() const;
 };
 
 // Human player strategy: requires user input to make decisions
@@ -49,6 +53,8 @@ public:
 
     void issueOrder() override;
 
+    void issueDeployOrder() override;
+    void issueAdvanceOrder() override;
     void issueAirliftOrder() override;
     void issueBlockadeOrder() override;
     void issueBombOrder() override;
@@ -61,18 +67,13 @@ public:
     string getStrategyType() const override;
 
 private:
-    void issueDeployOrder(const int deployedThisTurn, const int reinforcementPool);
-    void issueAdvanceOrder();
-
     const string selectOrder();
+    vector<string> getOrdersAvailable() const;
     Territory *selectTerritory(vector<Territory *> territories, string label) const;
     int selectArmyUnits(Territory *territory, string descriptor, int max = 0) const;
 
-    const vector<string> getOrdersAvailable() const;
-
-    void printTerritoriesAndUnits(vector<Territory*> territories, string label) const;
+    void printTerritoriesAndUnits(vector<Territory *> territories, string label) const;
     void invalidInput(bool outOfBounds, string message) const;
-    bool hasUnitsOnMap() const;
     bool inNegotiations(Player *target) const;
 };
 
@@ -88,6 +89,8 @@ public:
 
     void issueOrder() override;
 
+    void issueDeployOrder() override;
+    void issueAdvanceOrder() override;
     void issueAirliftOrder() override;
     void issueBlockadeOrder() override;
     void issueBombOrder() override;
@@ -98,6 +101,21 @@ public:
     vector<Territory *> toAttack() const override;
 
     string getStrategyType() const override;
+
+private:
+    Territory *strongest;
+    vector<int> unitsToAdvanceFromStrongest;
+    vector<Territory *> toAdvanceFrom;
+    vector<Territory *> toAdvanceTo;
+    bool firstOrder;
+
+    void setTerritoriesToAdvanceFrom();
+    const string selectOrder();
+    vector<string> getOrdersAvailable() const;
+    Territory *setStrongestTerritory();
+    vector<Territory *> enemyBorders(Territory *territory) const;
+    Territory *pathToStrongest(Territory *source, Territory *target) const;
+    Territory *pathToEnemy() const;
 };
 
 // Computer player that focuses on protecting its weak countries (deploys or advances armies
@@ -112,6 +130,8 @@ public:
 
     void issueOrder() override;
 
+    void issueDeployOrder() override;
+    void issueAdvanceOrder() override;
     void issueAirliftOrder() override;
     void issueBlockadeOrder() override;
     void issueBombOrder() override;
@@ -135,6 +155,8 @@ public:
 
     void issueOrder() override;
 
+    void issueDeployOrder() override;
+    void issueAdvanceOrder() override;
     void issueAirliftOrder() override;
     void issueBlockadeOrder() override;
     void issueBombOrder() override;
@@ -159,6 +181,8 @@ public:
 
     void issueOrder() override;
 
+    void issueDeployOrder() override;
+    void issueAdvanceOrder() override;
     void issueAirliftOrder() override;
     void issueBlockadeOrder() override;
     void issueBombOrder() override;

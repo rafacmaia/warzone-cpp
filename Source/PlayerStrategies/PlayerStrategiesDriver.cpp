@@ -4,6 +4,7 @@
 #include "../../Header/GameEngine/GameEngine.h"
 #include "../../Header/Player/Player.h"
 #include "../../Header/Cards/Cards.h"
+#include "../../Header/Orders/Orders.h"
 
 #include <iostream>
 using std::cout;
@@ -17,11 +18,6 @@ void testPlayerStrategies()
     // setup game engine (just to test access to the deck), territories, and players to test
     GameEngine *game = new GameEngine();
     GameEngine::getDeck()->createDeck();
-
-    vector<Card *> d = GameEngine::getDeck()->printDeck();
-    int i = 1;
-    for (Card *card : d)
-        cout << i++ << ". " << *card << endl;
 
     Territory *territories[7] = {new Territory(0, "Villeray", 4), new Territory(1, "Little Italy", 4),
                                  new Territory(2, "Mile End", 3), new Territory(3, "Plateau", 3),
@@ -51,9 +47,9 @@ void testPlayerStrategies()
         cout << *territory;
     cout << "-----------------------------------------------------------\n";
 
-    Player *tina = new Player("Tina", new HumanPlayerStrategy);
-    Player *eugene = new Player("Eugene", new HumanPlayerStrategy);
-    Player *louise = new Player("Louise", new HumanPlayerStrategy);
+    Player *tina = new Player("Tina", new AggressivePlayerStrategy);
+    Player *eugene = new Player("Eugene", new AggressivePlayerStrategy);
+    Player *louise = new Player("Louise", new AggressivePlayerStrategy);
 
     game->addPlayer(tina);
     game->addPlayer(eugene);
@@ -72,9 +68,13 @@ void testPlayerStrategies()
     eugene->addReinforcements(50);
     louise->addReinforcements(50);
 
-    territories[4]->setArmyUnits(20);
+    territories[4]->setArmyUnits(5);
+    territories[0]->setArmyUnits(5);
+    territories[5]->setArmyUnits(10);
     territories[1]->setArmyUnits(20);
     territories[3]->setArmyUnits(20);
+    territories[2]->setArmyUnits(5);
+    territories[6]->setArmyUnits(8);
 
     eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
     tina->getHand()->addToHand(GameEngine::getDeck()->draw());
@@ -85,60 +85,39 @@ void testPlayerStrategies()
     eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
     tina->getHand()->addToHand(GameEngine::getDeck()->draw());
     louise->getHand()->addToHand(GameEngine::getDeck()->draw());
+    eugene->getHand()->addToHand(GameEngine::getDeck()->draw());
+    tina->getHand()->addToHand(GameEngine::getDeck()->draw());
+    louise->getHand()->addToHand(GameEngine::getDeck()->draw());
 
-    d = GameEngine::getDeck()->printDeck();
-    i = 1;
-    for (Card *card : d)
-        cout << i++ << ". " << *card << endl;
+    cout << "-----------------------------------------------------------\n"
+         << "\t\t~~~~~~ORDERS ISSUING~~~~~~~\n"
+         << "-----------------------------------------------------------\n";
 
-    cout << "-----------------------------------------------------------\n";
-    // issue test deploy orders
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    tina->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    louise->issueOrder();
-    cout << "-----------------------------------------------------------\n";
-    eugene->issueOrder();
-    cout << "-----------------------------------------------------------\n";
+    for (int i = 0; i < 8; i++)
+    {
+        cout << "-----------------------------------------------------------\n";
+        tina->issueOrder();
+        cout << "-----------------------------------------------------------\n";
+        louise->issueOrder();
+        cout << "-----------------------------------------------------------\n";
+        eugene->issueOrder();
+    }
+
+    cout << "-----------------------------------------------------------\n"
+         << "\t\t~~~~~~ORDERS EXECUTION~~~~~~~"
+         << "-----------------------------------------------------------\n";
+
+    Order *next;
+    for (int i = 0; i < 8; i++)
+    {
+        cout << "-----------------------------------------------------------\n";
+        if ((next = tina->nextOrder()))
+            next->execute();
+        cout << "-----------------------------------------------------------\n";
+        if ((next = eugene->nextOrder()))
+            next->execute();
+        cout << "-----------------------------------------------------------\n";
+        if ((next = louise->nextOrder()))
+            next->execute();
+    }
 }

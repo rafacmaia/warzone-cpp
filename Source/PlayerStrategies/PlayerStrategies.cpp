@@ -17,6 +17,10 @@ using std::vector;
 #include <unordered_set>
 using std::unordered_set;
 #include <iomanip>
+#include <algorithm>
+using std::find;
+#include <utility>
+using std::pair;
 
 PlayerStrategy::PlayerStrategy() : player(nullptr)
 {
@@ -31,6 +35,15 @@ void PlayerStrategy::setPlayer(Player *pl)
     player = pl;
 }
 
+bool PlayerStrategy::hasUnitsOnMap() const
+{
+    for (Territory *territory : toDefend())
+        if (territory->getArmyUnits() != 0)
+            return true;
+
+    return false;
+}
+
 HumanPlayerStrategy::HumanPlayerStrategy() : PlayerStrategy() {}
 
 HumanPlayerStrategy::HumanPlayerStrategy(Player *pl) : PlayerStrategy(pl) {}
@@ -39,10 +52,13 @@ HumanPlayerStrategy::~HumanPlayerStrategy() {}
 
 void HumanPlayerStrategy::issueOrder()
 {
+    while (player->getHand()->hasReinforcement())
+        player->getHand()->playCard(player, "Reinforcement");
+
     if (player->isFinishedIssuingOrders())
         cout << player->getPlayerName() << " has no more orders to issue.\n";
     else if (player->getArmiesDeployedThisTurn() < player->getReinforcementPool())
-        issueDeployOrder(player->getArmiesDeployedThisTurn(), player->getReinforcementPool());
+        issueDeployOrder();
     else
     {
         const string selected = selectOrder();
@@ -60,21 +76,21 @@ void HumanPlayerStrategy::issueAirliftOrder()
 {
     cout << "*Issuing Airlift Order*\n\n";
 
-    printTerritoriesAndUnits(player->getTerritories(), "Controlled");
-    Territory *source = selectTerritory(player->getTerritories(), "source");
+    printTerritoriesAndUnits(toDefend(), "Controlled");
+    Territory *source = selectTerritory(toDefend(), "source");
 
     while (source->getArmyUnits() == 0)
     {
         invalidInput(false, source->getTerritoryName() + " has no army units to airlift");
-        source = selectTerritory(player->getTerritories(), "source");
+        source = selectTerritory(toDefend(), "source");
     }
 
-    Territory *target = selectTerritory(player->getTerritories(), "target");
+    Territory *target = selectTerritory(toDefend(), "target");
 
     while (target == source)
     {
         invalidInput(false, "Unauthorized to airlift units to and from the same territory");
-        target = selectTerritory(player->getTerritories(), "target");
+        target = selectTerritory(toDefend(), "target");
     }
 
     int armyUnits = selectArmyUnits(source, "airlift from ");
@@ -86,8 +102,8 @@ void HumanPlayerStrategy::issueBlockadeOrder()
 {
     cout << "*Issuing Blockade Order*\n\n";
 
-    printTerritoriesAndUnits(player->getTerritories(), "Controlled");
-    Territory *target = selectTerritory(player->getTerritories(), "target");
+    printTerritoriesAndUnits(toDefend(), "Controlled");
+    Territory *target = selectTerritory(toDefend(), "target");
 
     player->addToOrdersList(new Blockade(player, target));
 }
@@ -132,19 +148,19 @@ void HumanPlayerStrategy::issueNegotiateOrder()
 
 vector<Territory *> HumanPlayerStrategy::toDefend() const
 {
-    return player->getTerritories();
+    return toDefend();
 }
 
 vector<Territory *> HumanPlayerStrategy::toAttack() const
 {
     unordered_set<Territory *> adjacentTerritories;
 
-    for (Territory *territory : player->getTerritories())
+    for (Territory *territory : toDefend())
     {
         vector<Territory *> currentAdjacent = territory->getAdjacentTerritories();
         adjacentTerritories.insert(currentAdjacent.begin(), currentAdjacent.end());
     }
-    for (Territory *territory : player->getTerritories())
+    for (Territory *territory : toDefend())
         adjacentTerritories.erase(territory);
 
     return vector<Territory *>(adjacentTerritories.begin(), adjacentTerritories.end());
@@ -155,16 +171,19 @@ string HumanPlayerStrategy::getStrategyType() const
     return "Human";
 }
 
-void HumanPlayerStrategy::issueDeployOrder(const int deployedThisTurn, const int reinforcementPool)
+void HumanPlayerStrategy::issueDeployOrder()
 {
+    int reinforcementPool = player->getReinforcementPool();
+    int deployedThisTurn = player->getArmiesDeployedThisTurn();
+
     cout << "*Issuing Deploy Order*\n"
          << player->getPlayerName() << ": " << deployedThisTurn << "/" << reinforcementPool
          << " army units deployed.\n\n";
 
-    Territory *target = player->getTerritories()[0];
+    Territory *target = toDefend()[0];
     int armyUnits;
 
-    if (player->getTerritories().size() == 1)
+    if (toDefend().size() == 1)
     {
         cout << "You only control one territory: " << target->getTerritoryName()
              << "\nDeploying all " << reinforcementPool << " army units to "
@@ -175,8 +194,8 @@ void HumanPlayerStrategy::issueDeployOrder(const int deployedThisTurn, const int
     {
         player->printIssuedOrders();
         cout << endl;
-        printTerritoriesAndUnits(player->getTerritories(), "Controlled");
-        target = selectTerritory(player->getTerritories(), "target");
+        printTerritoriesAndUnits(toDefend(), "Controlled");
+        target = selectTerritory(toDefend(), "target");
         armyUnits = selectArmyUnits(target, "deploy to ", (reinforcementPool - deployedThisTurn));
     }
     player->setArmiesDeployedThisTurn(deployedThisTurn + armyUnits);
@@ -188,13 +207,13 @@ void HumanPlayerStrategy::issueAdvanceOrder()
 {
     cout << "*Issuing Advance Order*\n\n";
 
-    printTerritoriesAndUnits(player->getTerritories(), "Controlled");
-    Territory *source = selectTerritory(player->getTerritories(), "source");
+    printTerritoriesAndUnits(toDefend(), "Controlled");
+    Territory *source = selectTerritory(toDefend(), "source");
 
     while (source->getArmyUnits() == 0)
     {
         invalidInput(false, source->getTerritoryName() + " has no army units to advance");
-        source = selectTerritory(player->getTerritories(), "source");
+        source = selectTerritory(toDefend(), "source");
     }
 
     string descriptor = "\nAdvancing from " + source->getTerritoryName() + ", Adjacent";
@@ -209,7 +228,7 @@ void HumanPlayerStrategy::issueAdvanceOrder()
 
 const string HumanPlayerStrategy::selectOrder()
 {
-    const vector<string> ordersAvailable = getOrdersAvailable();
+    vector<string> ordersAvailable = getOrdersAvailable();
 
     if (ordersAvailable.size() == 1)
         return ordersAvailable[0];
@@ -232,6 +251,28 @@ const string HumanPlayerStrategy::selectOrder()
     cout << endl;
     return (ordersAvailable[playerInput - 1] == "Negotiate") ? "Diplomacy"
                                                              : ordersAvailable[playerInput - 1];
+}
+
+vector<string> HumanPlayerStrategy::getOrdersAvailable() const
+{
+    vector<string> ordersAvailable;
+
+    if (hasUnitsOnMap())
+        ordersAvailable.push_back("Advance");
+    if (player->getHand()->getHandSize() != 0)
+    {
+        if (player->getHand()->hasAirlift() && hasUnitsOnMap())
+            ordersAvailable.push_back("Airlift");
+        if (player->getHand()->hasBlockade())
+            ordersAvailable.push_back("Blockade");
+        if (player->getHand()->hasBomb())
+            ordersAvailable.push_back("Bomb");
+        if (player->getHand()->hasNegotiate())
+            ordersAvailable.push_back("Negotiate");
+    }
+    ordersAvailable.push_back("Pass");
+
+    return ordersAvailable;
 }
 
 Territory *HumanPlayerStrategy::selectTerritory(vector<Territory *> territories,
@@ -267,28 +308,6 @@ int HumanPlayerStrategy::selectArmyUnits(Territory *territory, string descriptor
     return playerInput;
 }
 
-const vector<string> HumanPlayerStrategy::getOrdersAvailable() const
-{
-    vector<string> ordersAvailable;
-
-    if (hasUnitsOnMap())
-        ordersAvailable.push_back("Advance");
-    if (player->getHand()->getHandSize() != 0)
-    {
-        if (player->getHand()->hasAirlift() && hasUnitsOnMap())
-            ordersAvailable.push_back("Airlift");
-        if (player->getHand()->hasBlockade())
-            ordersAvailable.push_back("Blockade");
-        if (player->getHand()->hasBomb())
-            ordersAvailable.push_back("Bomb");
-        if (player->getHand()->hasNegotiate())
-            ordersAvailable.push_back("Negotiate");
-    }
-    ordersAvailable.push_back("Pass");
-
-    return ordersAvailable;
-}
-
 void HumanPlayerStrategy::printTerritoriesAndUnits(vector<Territory *> territories,
                                                    string label) const
 {
@@ -316,15 +335,6 @@ void HumanPlayerStrategy::invalidInput(bool outOfBounds, string message) const
         cout << message << "; please select another option.\n";
 }
 
-bool HumanPlayerStrategy::hasUnitsOnMap() const
-{
-    for (Territory *territory : player->getTerritories())
-        if (territory->getArmyUnits() != 0)
-            return true;
-
-    return false;
-}
-
 bool HumanPlayerStrategy::inNegotiations(Player *target) const
 {
     for (auto pair : *(Order::negotiations()))
@@ -335,51 +345,331 @@ bool HumanPlayerStrategy::inNegotiations(Player *target) const
     return false;
 }
 
-AggressivePlayerStrategy::AggressivePlayerStrategy() : PlayerStrategy() {}
+AggressivePlayerStrategy::AggressivePlayerStrategy()
+    : PlayerStrategy(), strongest(nullptr), firstOrder(true) {}
 
-AggressivePlayerStrategy::AggressivePlayerStrategy(Player *pl) : PlayerStrategy(pl) {}
+AggressivePlayerStrategy::AggressivePlayerStrategy(Player *pl)
+    : PlayerStrategy(pl), strongest(nullptr), firstOrder(true) {}
 
 AggressivePlayerStrategy::~AggressivePlayerStrategy() {}
 
 void AggressivePlayerStrategy::issueOrder()
 {
-    cout << *player << endl;
+    while (player->getHand()->hasReinforcement())
+        player->getHand()->playCard(player, "Reinforcement");
 
-    if (player->getArmiesDeployedThisTurn() < player->getReinforcementPool())
-        player->issueDeployOrder();
+    if (player->isFinishedIssuingOrders())
+        cout << player->getPlayerName() << " has no more orders to issue.\n";
+    else if (player->getArmiesDeployedThisTurn() < player->getReinforcementPool())
+        issueDeployOrder();
     else
     {
-        int randomChoice = rand() % (100);
+        const string selected = selectOrder();
 
-        if (randomChoice <= 25)
-            player->issueAdvanceOrder();
-        else if (randomChoice <= 75)
+        if (selected == "Pass")
         {
-            if (player->getHand()->getHandSize() != 0)
-                player->playCard();
-            else
-                player->issueAdvanceOrder();
-        }
-        else
             player->setIsFinishedIssuingOrders(true);
+            firstOrder = true;
+        }
+        else if (selected == "Advance")
+            issueAdvanceOrder();
+        else
+            player->getHand()->playCard(player, selected);
     }
+}
+
+vector<Territory *> AggressivePlayerStrategy::enemyBorders(Territory *territory) const
+{
+    vector<Territory *> enemyBorders;
+    vector<Territory *> territories(toDefend());
+
+    for (Territory *adjacent : territory->getAdjacentTerritories())
+        if (find(territories.begin(), territories.end(), adjacent) == territories.end())
+            enemyBorders.push_back(adjacent);
+
+    return enemyBorders;
+}
+
+Territory *AggressivePlayerStrategy::setStrongestTerritory()
+{
+    strongest = toDefend()[0];
+
+    if (toDefend().size() == 1)
+        return strongest;
+
+    int currentArmySize, strongestArmySize = strongest->getArmyUnits();
+    for (int i = 1; i < toDefend().size(); i++)
+    {
+        currentArmySize = toDefend()[i]->getArmyUnits();
+
+        if ((currentArmySize > strongestArmySize) ||
+            (currentArmySize == strongestArmySize &&
+             (enemyBorders(toDefend()[i]).size() > enemyBorders(strongest).size())))
+        {
+            strongest = toDefend()[i];
+            strongestArmySize = currentArmySize;
+        }
+    }
+
+    if (toAttack().empty())
+    {
+        unitsToAdvanceFromStrongest.push_back(strongest->getArmyUnits());
+    }
+    else
+    {
+        unitsToAdvanceFromStrongest = vector<int>(toAttack().size(), 0);
+        for (int i = 0; i < strongest->getArmyUnits(); i++)
+            unitsToAdvanceFromStrongest[i % unitsToAdvanceFromStrongest.size()]++;
+    }
+
+    return strongest;
+}
+
+void AggressivePlayerStrategy::setTerritoriesToAdvanceFrom()
+{
+    setStrongestTerritory();
+
+    for (Territory *territory : toDefend())
+        if (territory->getArmyUnits() != 0 && territory != strongest)
+        {
+
+            Territory *target = toAttack().empty() ? pathToStrongest(territory, pathToEnemy())
+                                                   : pathToStrongest(territory, strongest);
+            if (target)
+            {
+                toAdvanceFrom.push_back(territory);
+                toAdvanceTo.push_back(target);
+            }
+        }
+
+    firstOrder = false;
+}
+
+void AggressivePlayerStrategy::issueDeployOrder()
+{
+    if (firstOrder)
+        setTerritoriesToAdvanceFrom();
+
+    int reinforcementPool = player->getReinforcementPool();
+    int deployedThisTurn = player->getArmiesDeployedThisTurn();
+
+    cout << "*Issuing Deploy Order*\n"
+         << player->getPlayerName() << ": " << deployedThisTurn << "/" << reinforcementPool
+         << " army units deployed.\n\n";
+
+    player->setArmiesDeployedThisTurn(player->getReinforcementPool());
+    player->addToOrdersList(new Deploy(player, player->getReinforcementPool(), strongest));
+}
+
+void AggressivePlayerStrategy::issueAdvanceOrder()
+{
+    cout << "*Issuing Advance Order*\n\n";
+
+    int unitsToAdvance;
+    Territory *source = strongest;
+    Territory *target = nullptr;
+
+    if (!toAttack().empty() && !unitsToAdvanceFromStrongest.empty())
+    {
+        unitsToAdvance = unitsToAdvanceFromStrongest[unitsToAdvanceFromStrongest.size() - 1];
+        target = toAttack()[unitsToAdvanceFromStrongest.size() - 1];
+        unitsToAdvanceFromStrongest.pop_back();
+    }
+    else if (toAttack().empty() && !unitsToAdvanceFromStrongest.empty())
+    {
+        target = pathToEnemy();
+        unitsToAdvance = strongest->getArmyUnits();
+        unitsToAdvanceFromStrongest.pop_back();
+    }
+    else if (!toAdvanceFrom.empty())
+    {
+        source = toAdvanceFrom.back();
+        target = toAdvanceTo.back();
+        toAdvanceFrom.pop_back();
+        toAdvanceTo.pop_back();
+        unitsToAdvance = source->getArmyUnits();
+    }
+
+    player->addToOrdersList(new Advance(player, unitsToAdvance, source, target));
+}
+
+Territory *AggressivePlayerStrategy::pathToEnemy() const
+{
+    vector<Territory *> currentLevel{strongest};
+    vector<Territory *> visited{strongest};
+    vector<Territory *> previous{nullptr};
+
+    while (!currentLevel.empty())
+    {
+        vector<Territory *> nextLevel;
+        for (Territory *ter : currentLevel)
+        {
+            for (Territory *adj : ter->getAdjacentTerritories())
+                if (find(visited.begin(), visited.end(), adj) == visited.end())
+                {
+                    previous.push_back(ter);
+                    visited.push_back(adj);
+                    nextLevel.push_back(adj);
+                }
+        }
+        currentLevel = nextLevel;
+    }
+
+    int i = 2;
+    Territory *destination = visited[i];
+    while (destination->getOwner() == player)
+        destination = previous[++i];
+
+    while (previous[--i] != strongest)
+        if (visited[i] == destination)
+            destination = visited[i];
+
+    return visited[i];
+}
+
+Territory *AggressivePlayerStrategy::pathToStrongest(Territory *source, Territory *strongest) const
+{
+    vector<Territory *> adjacent = source->getAdjacentTerritories();
+    if (find(adjacent.begin(), adjacent.end(), strongest) != adjacent.end())
+        return strongest;
+
+    vector<Territory *> currentLevel{source};
+    vector<Territory *> visited{source};
+    vector<Territory *> previous{nullptr};
+
+    // find path from source to strongest using only controlled territories
+    while (!currentLevel.empty())
+    {
+        vector<Territory *> nextLevel;
+        for (Territory *ter : currentLevel)
+        {
+            for (Territory *adj : ter->getAdjacentTerritories())
+                if (adj->getOwner() == player && find(visited.begin(), visited.end(), adj) == visited.end())
+                {
+                    previous.push_back(ter);
+                    visited.push_back(adj);
+                    nextLevel.push_back(adj);
+                }
+        }
+        currentLevel = nextLevel;
+    }
+
+    Territory *destination = strongest;
+    int i = visited.size();
+    while (previous[--i] != source)
+        if (visited[i] == destination)
+            destination = previous[i];
+
+    if (destination == strongest)
+    {
+        currentLevel.clear();
+        currentLevel.push_back(source);
+        visited.clear();
+        visited.push_back(source);
+        previous.clear();
+        previous.push_back(nullptr);
+
+        while (!currentLevel.empty())
+        {
+            vector<Territory *> nextLevel;
+            for (Territory *ter : currentLevel)
+            {
+                for (Territory *adj : ter->getAdjacentTerritories())
+                    if (find(visited.begin(), visited.end(), adj) == visited.end())
+                    {
+                        previous.push_back(ter);
+                        visited.push_back(adj);
+                        nextLevel.push_back(adj);
+                    }
+            }
+            currentLevel = nextLevel;
+        }
+
+        Territory *destination = strongest;
+        int i = visited.size();
+        while (previous[--i] != source)
+            if (visited[i] == destination && previous[i]->getOwner() == player)
+                destination = previous[i];
+    }
+
+    return (destination == strongest) ? nullptr : destination;
 }
 
 void AggressivePlayerStrategy::issueAirliftOrder()
 {
-    player->issueAirliftOrder();
+    cout << "*Issuing Airlift Order*\n\n";
+
+    int targetIndex = 0;
+    Territory *source = toAdvanceFrom[targetIndex];
+    Territory *target = toAdvanceTo[targetIndex];
+    for (int i = 1; i < toAdvanceFrom.size(); i++)
+    {
+        if (toAdvanceFrom[i]->getArmyUnits() > source->getArmyUnits())
+        {
+            if (!toAttack().empty() && toAdvanceTo[i] != strongest)
+                targetIndex = i;
+            if (toAttack().empty() && toAdvanceTo[i] != pathToEnemy())
+                targetIndex = i;
+        }
+    }
+
+    source = toAdvanceFrom[targetIndex];
+    target = toAttack().empty() ? pathToEnemy() : strongest;
+    toAdvanceFrom.erase(toAdvanceFrom.begin() + targetIndex);
+    toAdvanceTo.erase(toAdvanceTo.begin() + targetIndex);
+
+    player->addToOrdersList(new Airlift(player, source->getArmyUnits(), source, target));
 }
+
 void AggressivePlayerStrategy::issueBlockadeOrder()
 {
-    player->issueBlockadeOrder();
+    cout << "Issuing a Blockade order." << endl;
+
+    if (toDefend().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+    cout << "Blockading " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Blockade(player, targetTerritory));
 }
+
 void AggressivePlayerStrategy::issueBombOrder()
 {
-    player->issueBombOrder();
+    cout << "*Issuing Bomb Order*\n\n";
+
+    vector<Territory *> enemyTerritories;
+
+    if (toAttack().empty())
+    {
+        unordered_set<Territory *> adjacentTerritories;
+
+        for (Territory *territory : toDefend())
+        {
+            vector<Territory *> currentAdjacent = territory->getAdjacentTerritories();
+            adjacentTerritories.insert(currentAdjacent.begin(), currentAdjacent.end());
+        }
+        for (Territory *territory : toDefend())
+            adjacentTerritories.erase(territory);
+
+        enemyTerritories = vector<Territory *>(adjacentTerritories.begin(), adjacentTerritories.end());
+    }
+    else
+        enemyTerritories = toAttack();
+
+    Territory *target = enemyTerritories[0];
+    for (int i = 1; i < enemyTerritories.size(); i++)
+        if (enemyTerritories[i]->getArmyUnits() > target->getArmyUnits())
+            target = enemyTerritories[i];
+
+    player->addToOrdersList(new Bomb(player, target));
 }
+
 void AggressivePlayerStrategy::issueNegotiateOrder()
 {
-    player->issueNegotiateOrder();
+    return;
 }
 
 vector<Territory *> AggressivePlayerStrategy::toDefend() const
@@ -389,51 +679,49 @@ vector<Territory *> AggressivePlayerStrategy::toDefend() const
 
 vector<Territory *> AggressivePlayerStrategy::toAttack() const
 {
-    vector<Territory *> allAdjacentTerritories;
-
-    for (Territory *territory : player->getTerritories())
-    {
-        vector<Territory *> currentAdjacentTerritories = territory->getAdjacentTerritories();
-        allAdjacentTerritories.insert(allAdjacentTerritories.end(),
-                                      currentAdjacentTerritories.begin(),
-                                      currentAdjacentTerritories.end());
-    }
-
-    // remove duplicates
-    for (int i = 0; i < allAdjacentTerritories.size(); i++)
-    {
-        for (int j = i + 1; j < allAdjacentTerritories.size();)
-        {
-            if (allAdjacentTerritories[i]->getTerritoryName() ==
-                allAdjacentTerritories[j]->getTerritoryName())
-            {
-                allAdjacentTerritories.erase(allAdjacentTerritories.begin() + j);
-                continue;
-            }
-            j++;
-        }
-    }
-
-    // remove the player's territories
-    for (int i = 0; i < player->getTerritories().size(); i++)
-    {
-        for (int j = 0; j < allAdjacentTerritories.size();)
-        {
-            if (player->getTerritories()[i]->getTerritoryName() ==
-                allAdjacentTerritories[j]->getTerritoryName())
-            {
-                allAdjacentTerritories.erase(allAdjacentTerritories.begin() + j);
-                continue;
-            }
-            j++;
-        }
-    }
-    return allAdjacentTerritories;
+    return enemyBorders(strongest);
 }
 
 string AggressivePlayerStrategy::getStrategyType() const
 {
     return "Aggressive";
+}
+
+const string AggressivePlayerStrategy::selectOrder()
+{
+    vector<string> ordersAvailable(getOrdersAvailable());
+
+    if (ordersAvailable.size() == 1)
+        return ordersAvailable[0];
+
+    cout << *player
+         << "ORDERS AVAILABLE TO ISSUE:\n\n";
+    for (int i = 0; i < ordersAvailable.size(); i++)
+        cout << (i + 1) << ". " << ordersAvailable[i] << endl;
+    cout << endl;
+
+    return ordersAvailable[0];
+}
+
+vector<string> AggressivePlayerStrategy::getOrdersAvailable() const
+{
+    vector<string> ordersAvailable;
+
+    if (player->getHand()->getHandSize() != 0)
+    {
+        if (player->getHand()->hasBomb())
+            ordersAvailable.push_back("Bomb");
+        if (player->getHand()->hasAirlift() && hasUnitsOnMap() && !toAdvanceFrom.empty())
+            ordersAvailable.push_back("Airlift");
+    }
+    if (hasUnitsOnMap() && (!unitsToAdvanceFromStrongest.empty() || !toAdvanceFrom.empty()))
+    {
+        ordersAvailable.push_back("Advance");
+    }
+
+    ordersAvailable.push_back("Pass");
+
+    return ordersAvailable;
 }
 
 BenevolentPlayerStrategy::BenevolentPlayerStrategy() : PlayerStrategy() {}
@@ -466,21 +754,102 @@ void BenevolentPlayerStrategy::issueOrder()
     }
 }
 
+void BenevolentPlayerStrategy::issueDeployOrder()
+{
+    player->issueDeployOrder();
+}
+
+void BenevolentPlayerStrategy::issueAdvanceOrder()
+{
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    // get random target territory from toAttack
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+    Territory *sourceTerritory;
+
+    // find a territory adjacent to the target that's in toDefend
+    for (Territory *territoryAdjacentToTarget : targetTerritory->getAdjacentTerritories())
+    {
+        vector<Territory *> territoriesToDefend = toDefend();
+        if (find_if(territoriesToDefend.begin(), territoriesToDefend.end(), [territoryAdjacentToTarget](Territory *territory)
+                    { return territory->getTerritoryName() == territoryAdjacentToTarget->getTerritoryName(); }) == territoriesToDefend.end())
+        {
+            continue;
+        }
+        sourceTerritory = territoryAdjacentToTarget;
+        break;
+    }
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Advancing " << units << " to " << targetTerritory->getTerritoryName() << " from " << sourceTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Advance(player, units, sourceTerritory, targetTerritory));
+}
+
 void BenevolentPlayerStrategy::issueAirliftOrder()
 {
-    player->issueAirliftOrder();
+    cout << "Issuing an Airlift order." << endl;
+
+    // get random territory from toAttack and toDefend
+    Territory *sourceTerritory = toDefend()[rand() % (toDefend().size())];
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Airlifting " << units << " from " << sourceTerritory->getTerritoryName() << " to " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Airlift(player, units, sourceTerritory, targetTerritory));
 }
+
 void BenevolentPlayerStrategy::issueBlockadeOrder()
 {
-    player->issueBlockadeOrder();
+    cout << "Issuing a Blockade order." << endl;
+
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+    cout << "Blockading " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Blockade(player, targetTerritory));
 }
+
 void BenevolentPlayerStrategy::issueBombOrder()
 {
-    player->issueBombOrder();
+    cout << "Issuing a Bomb order." << endl;
+
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+
+    cout << "Bombing " << targetTerritory->getTerritoryName() << endl;
+    player->addToOrdersList(new Bomb(player, targetTerritory));
 }
+
 void BenevolentPlayerStrategy::issueNegotiateOrder()
 {
-    player->issueNegotiateOrder();
+    cout << "Issuing a Negotiate order." << endl;
+
+    Player *targetPlayer = nullptr;
+
+    for (Player *pl : GameEngine::getPlayers())
+    {
+        if (player->getPlayerName() != player->getPlayerName())
+        {
+            targetPlayer = player;
+            break;
+        }
+    }
+
+    cout << "Negotiating with " << targetPlayer->getPlayerName() << endl;
+
+    player->addToOrdersList(new Negotiate(player, targetPlayer));
 }
 
 vector<Territory *> BenevolentPlayerStrategy::toDefend() const
@@ -492,7 +861,7 @@ vector<Territory *> BenevolentPlayerStrategy::toAttack() const
 {
     vector<Territory *> allAdjacentTerritories;
 
-    for (Territory *territory : player->getTerritories())
+    for (Territory *territory : toDefend())
     {
         vector<Territory *> currentAdjacentTerritories = territory->getAdjacentTerritories();
         allAdjacentTerritories.insert(allAdjacentTerritories.end(),
@@ -516,11 +885,11 @@ vector<Territory *> BenevolentPlayerStrategy::toAttack() const
     }
 
     // remove the player's territories
-    for (int i = 0; i < player->getTerritories().size(); i++)
+    for (int i = 0; i < toDefend().size(); i++)
     {
         for (int j = 0; j < allAdjacentTerritories.size();)
         {
-            if (player->getTerritories()[i]->getTerritoryName() ==
+            if (toDefend()[i]->getTerritoryName() ==
                 allAdjacentTerritories[j]->getTerritoryName())
             {
                 allAdjacentTerritories.erase(allAdjacentTerritories.begin() + j);
@@ -567,21 +936,107 @@ void NeutralPlayerStrategy::issueOrder()
     }
 }
 
+void NeutralPlayerStrategy::issueDeployOrder()
+{
+    player->issueDeployOrder();
+}
+
+void NeutralPlayerStrategy::issueAdvanceOrder()
+{
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    // get random target territory from toAttack
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+    Territory *sourceTerritory;
+
+    // find a territory adjacent to the target that's in toDefend
+    for (Territory *territoryAdjacentToTarget : targetTerritory->getAdjacentTerritories())
+    {
+        vector<Territory *> territoriesToDefend = toDefend();
+        if (find_if(territoriesToDefend.begin(), territoriesToDefend.end(), [territoryAdjacentToTarget](Territory *territory)
+                    { return territory->getTerritoryName() == territoryAdjacentToTarget->getTerritoryName(); }) == territoriesToDefend.end())
+        {
+            continue;
+        }
+        sourceTerritory = territoryAdjacentToTarget;
+        break;
+    }
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Advancing " << units << " to " << targetTerritory->getTerritoryName() << " from " << sourceTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Advance(player, units, sourceTerritory, targetTerritory));
+}
+
 void NeutralPlayerStrategy::issueAirliftOrder()
 {
-    player->issueAirliftOrder();
+    cout << "Issuing an Airlift order." << endl;
+
+    // get random territory from toAttack and toDefend
+    Territory *sourceTerritory = toDefend()[rand() % (toDefend().size())];
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Airlifting " << units << " from " << sourceTerritory->getTerritoryName() << " to " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Airlift(player, units, sourceTerritory, targetTerritory));
 }
+
 void NeutralPlayerStrategy::issueBlockadeOrder()
 {
-    player->issueBlockadeOrder();
+    cout << "Issuing a Blockade order." << endl;
+
+    if (toDefend().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+    cout << "Blockading " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Blockade(player, targetTerritory));
 }
+
 void NeutralPlayerStrategy::issueBombOrder()
 {
-    player->issueBombOrder();
+    cout << "Issuing a Bomb order." << endl;
+
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+
+    cout << "Bombing " << targetTerritory->getTerritoryName() << endl;
+    player->addToOrdersList(new Bomb(player, targetTerritory));
 }
+
 void NeutralPlayerStrategy::issueNegotiateOrder()
 {
-    player->issueNegotiateOrder();
+    cout << "Issuing a Negotiate order." << endl;
+
+    Player *targetPlayer = nullptr;
+
+    for (Player *pl : GameEngine::getPlayers())
+    {
+        if (player->getPlayerName() != player->getPlayerName())
+        {
+            targetPlayer = player;
+            break;
+        }
+    }
+
+    cout << "Negotiating with " << targetPlayer->getPlayerName() << endl;
+
+    player->addToOrdersList(new Negotiate(player, targetPlayer));
 }
 
 vector<Territory *> NeutralPlayerStrategy::toDefend() const
@@ -593,7 +1048,7 @@ vector<Territory *> NeutralPlayerStrategy::toAttack() const
 {
     vector<Territory *> allAdjacentTerritories;
 
-    for (Territory *territory : player->getTerritories())
+    for (Territory *territory : toDefend())
     {
         vector<Territory *> currentAdjacentTerritories = territory->getAdjacentTerritories();
         allAdjacentTerritories.insert(allAdjacentTerritories.end(),
@@ -617,11 +1072,11 @@ vector<Territory *> NeutralPlayerStrategy::toAttack() const
     }
 
     // remove the player's territories
-    for (int i = 0; i < player->getTerritories().size(); i++)
+    for (int i = 0; i < toDefend().size(); i++)
     {
         for (int j = 0; j < allAdjacentTerritories.size();)
         {
-            if (player->getTerritories()[i]->getTerritoryName() ==
+            if (toDefend()[i]->getTerritoryName() ==
                 allAdjacentTerritories[j]->getTerritoryName())
             {
                 allAdjacentTerritories.erase(allAdjacentTerritories.begin() + j);
@@ -668,21 +1123,111 @@ void CheaterPlayerStrategy::issueOrder()
     }
 }
 
+void CheaterPlayerStrategy::issueDeployOrder()
+{
+    player->issueDeployOrder();
+}
+
+void CheaterPlayerStrategy::issueAdvanceOrder()
+{
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    // get random target territory from toAttack
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+    Territory *sourceTerritory;
+
+    // find a territory adjacent to the target that's in toDefend
+    for (Territory *territoryAdjacentToTarget : targetTerritory->getAdjacentTerritories())
+    {
+        vector<Territory *> territoriesToDefend = toDefend();
+        if (find_if(territoriesToDefend.begin(), territoriesToDefend.end(), [territoryAdjacentToTarget](Territory *territory)
+                    { return territory->getTerritoryName() == territoryAdjacentToTarget->getTerritoryName(); }) == territoriesToDefend.end())
+        {
+            continue;
+        }
+        sourceTerritory = territoryAdjacentToTarget;
+        break;
+    }
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Advancing " << units << " to " << targetTerritory->getTerritoryName() << " from " << sourceTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Advance(player, units, sourceTerritory, targetTerritory));
+}
+
 void CheaterPlayerStrategy::issueAirliftOrder()
 {
-    player->issueAirliftOrder();
+    cout << "Issuing an Airlift order." << endl;
+
+    if (toDefend().size() == 0)
+    {
+        return;
+    }
+    // get random territory from toAttack and toDefend
+    Territory *sourceTerritory = toDefend()[rand() % (toDefend().size())];
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+
+    // determine how many armies
+    int units = sourceTerritory->getArmyUnits();
+
+    cout << "Airlifting " << units << " from " << sourceTerritory->getTerritoryName() << " to " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Airlift(player, units, sourceTerritory, targetTerritory));
 }
+
 void CheaterPlayerStrategy::issueBlockadeOrder()
 {
-    player->issueBlockadeOrder();
+    cout << "Issuing a Blockade order." << endl;
+
+    if (toDefend().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toDefend()[rand() % (toDefend().size())];
+    cout << "Blockading " << targetTerritory->getTerritoryName() << endl;
+
+    player->addToOrdersList(new Blockade(player, targetTerritory));
 }
+
 void CheaterPlayerStrategy::issueBombOrder()
 {
-    player->issueBombOrder();
+    cout << "Issuing a Bomb order." << endl;
+
+    if (toAttack().size() == 0)
+    {
+        return;
+    }
+
+    Territory *targetTerritory = toAttack()[rand() % (toAttack().size())];
+
+    cout << "Bombing " << targetTerritory->getTerritoryName() << endl;
+    player->addToOrdersList(new Bomb(player, targetTerritory));
 }
+
 void CheaterPlayerStrategy::issueNegotiateOrder()
 {
-    player->issueNegotiateOrder();
+    cout << "Issuing a Negotiate order." << endl;
+
+    Player *targetPlayer = nullptr;
+
+    for (Player *pl : GameEngine::getPlayers())
+    {
+        if (player->getPlayerName() != player->getPlayerName())
+        {
+            targetPlayer = player;
+            break;
+        }
+    }
+
+    cout << "Negotiating with " << targetPlayer->getPlayerName() << endl;
+
+    player->addToOrdersList(new Negotiate(player, targetPlayer));
 }
 
 vector<Territory *> CheaterPlayerStrategy::toDefend() const
@@ -694,7 +1239,7 @@ vector<Territory *> CheaterPlayerStrategy::toAttack() const
 {
     vector<Territory *> allAdjacentTerritories;
 
-    for (Territory *territory : player->getTerritories())
+    for (Territory *territory : toDefend())
     {
         vector<Territory *> currentAdjacentTerritories = territory->getAdjacentTerritories();
         allAdjacentTerritories.insert(allAdjacentTerritories.end(),
@@ -718,11 +1263,11 @@ vector<Territory *> CheaterPlayerStrategy::toAttack() const
     }
 
     // remove the player's territories
-    for (int i = 0; i < player->getTerritories().size(); i++)
+    for (int i = 0; i < toDefend().size(); i++)
     {
         for (int j = 0; j < allAdjacentTerritories.size();)
         {
-            if (player->getTerritories()[i]->getTerritoryName() ==
+            if (toDefend()[i]->getTerritoryName() ==
                 allAdjacentTerritories[j]->getTerritoryName())
             {
                 allAdjacentTerritories.erase(allAdjacentTerritories.begin() + j);

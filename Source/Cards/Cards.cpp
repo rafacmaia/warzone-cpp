@@ -93,7 +93,8 @@ ReinforcementCard::~ReinforcementCard() {}
 
 void ReinforcementCard::play(Player *player)
 {
-	cout << "*Playing a Reinforcement Card*" << endl;
+	cout << "*Playing a Reinforcement Card*\nImmediate effect: 5 army units added to "
+		 << player->getPlayerName() << "'s reinforcement pool.\n";
 	player->addReinforcements(5);
 }
 
@@ -252,20 +253,6 @@ void Hand::addToHand(Card *card)
 	updateCardTypesInHand(card->cardType(), 1);
 }
 
-void Hand::playCard(Player *player, Deck *deck)
-{
-	int randomIndex = rand() % (getCards().size());
-	Card *randomCard = getCards()[randomIndex];
-
-	cardsInHand.erase(cardsInHand.begin() + randomIndex);
-
-	deck->addToDeck(randomCard);
-
-	randomCard->play(player);
-
-	updateCardTypesInHand(randomCard->cardType(), -1);
-}
-
 void Hand::playCard(Player *player, const string &typeToPlay)
 {
 	for (int i = 0; i < getHandSize(); i++)
@@ -312,6 +299,15 @@ bool Hand::hasNegotiate()
 	return cardTypesInHand[3];
 }
 
+bool Hand::hasReinforcement()
+{
+	for (Card *card : cardsInHand)
+		if (card->cardType() == "Reinforcement")
+			return true;
+
+	return false;
+}
+
 void Hand::updateCardTypesInHand(const string &type, int add)
 {
 	if (type == "Airlift")
@@ -324,10 +320,10 @@ void Hand::updateCardTypesInHand(const string &type, int add)
 		cardTypesInHand[3] += add;
 }
 
-void Hand::returnCardsToDeck(Deck *deck)
+void Hand::returnCardsToDeck()
 {
 	for (Card *card : cardsInHand)
-		deck->addToDeck(card);
+		GameEngine::getDeck()->addToDeck(card);
 
 	cardsInHand.clear();
 	cardTypesInHand = {0};
